@@ -1,193 +1,163 @@
-## Momentum — the core
+---
+title: "Momentum — From Email to Done"
+output: github_document
+---
 
-One-liner: Turn any Gmail thread into a scheduled outcome: prep time-blocks, tasks, and ready-to-send drafts—with follow-through and re-planning.
+<!-- Badges (optional; replace later)
+status: MVP • Platform: Chrome (Gmail-only) • License: MIT/Apache (TBD)
+-->
 
-### From email to done.
+# Momentum
 
-Who it’s for (now): Busy students/consultants/founders who use Gmail + Google Calendar and routinely miss implicit asks in email.
+**One-liner:** Turn any Gmail thread into scheduled outcomes — prep time-blocks, Google Tasks (I-Owe / Waiting-On), and ready-to-send drafts — with nudges and re-planning until it’s done.
 
-MVP scope (what it does)
+**Tagline:** *From email to done.*
 
-Ship these three flows only. Anything else is scope creep.
+**Why it exists:** People don’t miss meetings; they miss the **prep** and the **vague asks** hidden in email. Momentum converts ambiguity into a concrete plan and follows through.
 
-Plan This (I-Owe)
-Convert an ask in the open thread into:
+---
 
-An exact local deadline (no “EOD”—always materialize to a timestamp).
+## What Momentum is (scope you can trust)
 
-1–2 Busy prep blocks before the deadline on Google Calendar.
+- **Gmail-only, on-demand** assistant: activates on the **current thread**.
+- Creates **Busy prep block(s)** *before* a deadline in Google Calendar.
+- Adds a **Google Task** to the right list (I-Owe or Waiting-On), with subtasks for checklists.
+- Prepares a **Gmail draft** (confirm / propose slots / bump). **Never auto-sends.**
+- Sets **nudges** (e.g., T−24h, T−2h) and **re-plans** when things change.
+- Uses **Google Tasks/Calendar as the app**—no new task UI to learn.
 
-A Google Task in “Momentum — I Owe” (+ optional subtasks/checklist).
+> Momentum is agentic: *perceive → plan → act → monitor → re-plan* — not another summarizer.
 
-A Gmail draft confirming the deadline (never auto-send).
+---
 
-Nudges: T−24h and T−2h; re-plan if you snooze/move blocks.
+## MVP Features (hackathon scope)
 
-Meet-Me (propose slots)
-When a thread implies “let’s meet”:
+### 1) Plan This (I-Owe)
+- Extracts an explicit ask addressed to you.
+- Converts “EOD / tomorrow / next week / by Fri 16:00” into an **exact local timestamp**.
+- Creates **1–2 Busy prep blocks** before the deadline.
+- Creates a **Task** in “Momentum — I Owe” (+ optional subtasks/checklist).
+- Generates a **confirmation draft** (“Confirming Fri 16:00 EEST — blocking time now.”).
+- Nudges at **T−24h** and **T−2h**; offers **Re-plan** on snooze/conflict.
 
-Compute 3 candidate slots from your Free/Busy (next 3 biz days, avoid lunch, respect work hours).
+### 2) Meet-Me (propose slots)
+- Detects meeting intent in the thread.
+- Proposes **3 candidate slots** from your Free/Busy (next 3 biz days, avoid lunch, 30–45 min, respect work hours).
+- Inserts slots into a **reply draft**; places **tentative holds**; **auto-clears** extra holds when a real invite is confirmed.
 
-Insert the slots into a reply draft and place tentative holds on your calendar.
+### 3) Waiting-On (bump)
+- When **they** owe you, creates a task in “Momentum — Waiting On” due in *N* days.
+- Prepares a **polite bump draft** tied to the thread.
+- At due time, opens the bump draft (no auto-send).
 
-Auto-clear holds when a real invite lands or you confirm a time.
+---
 
-Waiting-On (bump)
-When they owe you:
+## Non-Goals (v1)
 
-Create a task in “Momentum — Waiting On” due in N days.
+- No inbox-wide auto-scans; **current thread only**.
+- No sending emails; **drafts-only**.
+- No Slack/Jira/Notion integrations.
+- No Drive scanning or attachment handling.
+- No “summarize every thread” noise.
 
-Prewrite a polite bump draft linked to the thread.
+---
 
-At due time, open the draft to send (no auto-send).
+## Why Momentum is different
 
-That’s the wedge: commitments → plan → follow-through. No summaries, no mass automation, no Drive spelunking.
+| Dimension | Typical “AI email” | **Momentum** |
+|---|---|---|
+| Object of work | Events, drafts, summaries | **Commitments** (I-Owe / Waiting-On) |
+| Time semantics | Start/end time | **Deadlines + prep time** before deadline |
+| Outcome | CRUD + prose | **Plan → act → follow-through → re-plan** |
+| Autonomy | One-shot generation | **Agent loop** across Calendar, Tasks, Drafts |
+| Trust posture | Broad permissions, passive | **Gmail-only, on-demand, drafts-only, parse shown** |
 
-Non-goals (explicitly out in v1)
+---
 
-No inbox-wide auto-scan. On-demand current thread only.
+## User Experience (Chrome extension, Gmail-only)
 
-No sending emails. Drafts only.
+- **Trigger:** Hotkey (Cmd/Ctrl+Shift+K) or a small “Momentum” button in Gmail thread view.
+- **Side panel sections:**
+  1. **Parse & Edit:** type chip (I-Owe / Waiting-On), editable title, exact deadline, “view source” snippet.
+  2. **Actions:** **Plan This (45m)** · **Propose 3 Slots** · **Draft Bump**.
+  3. **Checklist & Outputs:** checklist chips → subtasks; toggles (Prep block / Task / Draft); after action, quick links to created Calendar block(s), Task, Draft. Footer: *Snooze 30m* · *Re-plan* · *Mark done*.
+- **Options page (tiny):** Work hours, quiet hours, nudge timings + read-only “Today / Overdue” pulled from the two Google Tasks lists.
 
-No custom task UI beyond a tiny “Today/Overdue” panel (Tasks is your DB/UI).
+---
 
-No Slack/Jira/Notion integrations.
+## Integrations & Permissions (minimal, safe)
 
-No “general screen reading.”
+- **Host:** `mail.google.com/*` only (extension runs on Gmail).
+- **APIs & scopes (principle of least privilege):**
+  - Gmail: read-only + compose (for **drafts**).
+  - Calendar: read/write (create **Busy prep blocks**, tentative holds).
+  - Tasks: read/write (two lists: **Momentum — I Owe**, **Momentum — Waiting On**).
+- **Data handling:** Stores only metadata (IDs, timestamps, reasons). Does **not** store email bodies long-term. Shows the parse before acting.
 
-Why Momentum is unique (vs Gmail/Gemini, Superhuman, Shortwave, Reclaim/Motion)
+---
 
-Object of work: commitments (I-Owe / Waiting-On), not just events or drafts.
+## Acceptance Criteria (done = demo-worthy)
 
-Time semantics: deadlines + prep time, not merely start/end.
+- Converts vague deadlines to **exact timestamps** in Europe/Helsinki and adds a confirmation line to drafts.
+- Creates **prep block(s)**, **Task**, and **Draft** in under ~2 seconds after “Plan This”.
+- Proposes **3 valid slots** and manages **holds** correctly (place & auto-clear).
+- Waiting-On bump fires exactly at due time and opens the prepared draft.
+- False-positive rate for commitment extraction **< 10%** on typical work mail.
+- No auto-send, no inbox-wide scanning, no cross-site permissions.
 
-Follow-through: nudges + re-planning when reality changes.
+---
 
-Trust posture: Gmail-only, on-demand, drafts-only, parse shown before acting.
+## Demo Script (90 seconds)
 
-Leverage existing tools: uses Google Tasks/Calendar as the “app,” so you don’t invent a brittle todo system.
+1. **Banker docs**: Hit *Plan This* → two prep blocks, task with subtasks, confirmation draft; move a block → *Re-plan* adjusts schedule.
+2. **Let’s meet**: *Propose 3 Slots* → draft with options + holds placed; final invite arrives → extra holds auto-clear.
+3. **Waiting-On**: Their promise → task due in 3 days + bump draft; at due time, notification opens draft.
 
-Extension UX (what users actually touch)
+---
 
-Surface: Gmail thread view only.
+## Metrics to display
 
-Trigger: hotkey (Cmd/Ctrl+Shift+K) or a small “Momentum” button that appears on message view.
+- **On-time completion %** for I-Owe tasks.
+- **False-positive %** on extraction.
+- **Action latency** (plan → calendar/task).
+- **Auto-cleared holds** rate.
 
-Side panel (three sections):
+---
 
-Parse & Edit
+## Setup & Run (high-level, no code)
 
-Type chip: I-Owe / Waiting-On
+1. Create a Google Cloud project; enable **Gmail**, **Calendar**, **Tasks** APIs.  
+2. Configure OAuth consent for the minimal scopes above.  
+3. Install the Chrome extension; first-run flow creates two Tasks lists:  
+   - *Momentum — I Owe*  
+   - *Momentum — Waiting On*  
+4. Open a Gmail thread → press the hotkey → confirm the parse → run an action.
 
-Title (editable)
+> Momentum never sends emails; it prepares drafts and shows you everything before acting.
 
-Deadline (always a concrete local timestamp)
+---
 
-Confidence + “view source” (scrolls to the exact sentence)
+## Privacy & Security
 
-Actions
+- **On-demand only** (current thread).  
+- **Drafts-only**; you send.  
+- **Gmail-only** host permission; no cross-site reading.  
+- **Minimal retention** of metadata; link to Google’s “connected apps” to revoke.
 
-Plan This (45m)
+---
 
-Propose 3 Slots
+## Roadmap (post-MVP)
 
-Draft Bump (visible for Waiting-On)
+- Better deadline understanding for multi-timezone threads.  
+- Lightweight dashboard for history & metrics (read-only).  
+- Team policies (shared work/quiet hours, bump cadences).  
+- Optional Slack/Telegram nudges (opt-in, not default).
 
-Checklist & Outputs
+---
 
-Checklist chips → become subtasks
+## Attribution & License
 
-Toggles (default on): Prep block · Task · Draft
+- Not affiliated with Google.  
+- License: **TBD** (MIT/Apache recommended for hackathon; confirm before release).  
+- Contributions welcome once MVP is stable and guardrails are documented.
 
-After action: links to created Calendar block(s), Task, Draft
-
-Footer: Snooze 30m · Re-plan · Mark done
-
-Options page (tiny, not a new app):
-
-Settings: work hours, quiet hours, nudge timings.
-
-Read-only glance: Today + Overdue pulled from your two Google Tasks lists.
-
-Required integrations & scopes (minimal, safe)
-
-Gmail: read-only + compose (for drafts).
-
-Calendar: read/write (create Busy prep blocks, holds).
-
-Tasks: read/write (two lists: Momentum — I Owe, Momentum — Waiting On).
-
-Auth: per-user OAuth; store tokens securely; request only these scopes.
-
-Acceptance criteria (what “done” looks like)
-
-Parses an explicit ask with you on To: and produces a correct deadline timestamp (no vague terms left).
-
-Creates prep block(s) within <2s, Task with checklist, and a Draft confirmation—all linked to the thread.
-
-“Meet-Me” proposes three valid slots and places/removes holds correctly.
-
-“Waiting-On” creates a due task + bump draft and surfaces a nudge exactly at due time.
-
-False-positive rate on commitment extraction <10% for typical work mail.
-
-No auto-send, no inbox scanning, no cross-site permissions.
-
-Why it’s agentic (and not a rules toy)
-
-Perceive: extract asks/promises, deadlines, ICS, participants from the open thread.
-
-Plan: choose actions under constraints (work/quiet hours, calendar conflicts).
-
-Act: create time blocks, tasks, and drafts across Google tools.
-
-Monitor: watch for snoozes, moved events, new replies.
-
-Re-plan: adjust blocks/bumps and explain why.
-
-Kickoff plan (no code, just the sequence to start)
-
-Name & promise (README top):
-Momentum — from email to done. Turn any Gmail thread into prep blocks, tasks, and drafts—then follow through.
-
-Decide the MVP knobs (defaults):
-
-Work hours 09:00–17:30; quiet hours 21:00–08:00.
-
-Prep time default 45 min (split into 2 × 25 min if needed).
-
-Waiting-On bump after 3 days.
-
-Define the three flows’ UI and copy (the exact button labels above).
-
-Create your two Google Tasks lists on first run; store their IDs.
-
-Extraction rules first, LLM second: commit to specific phrases you’ll parse (EOD/EOW/by Friday/within 48h). Always materialize to Helsinki time.
-
-Plan/placement policy: pick greedy rules for block placement and 3-slot proposal. Write them down (so you don’t waffle later).
-
-Trust & privacy policy page: on-demand only, drafts-only, metadata only, how to revoke access. Put this in the extension’s first-run screen.
-
-Demo storyboard: banker docs email → Plan This; “let’s meet” email → Propose 3 Slots; a promise from the other side → Waiting-On bump.
-
-End-of-week deliverable (what judges will see)
-
-Chrome extension that works on mail.google.com only, with the side panel and the three flows.
-
-90-sec video:
-
-Banker email → Plan This creates prep blocks, Task, Draft.
-
-“Let’s meet” email → Propose 3 Slots + holds; show holds auto-clearing on invite.
-
-“I’ll send the portal link tomorrow” → Waiting-On bump created; nudge fires; open bump draft.
-
-Mini metrics overlay: on-time %, false-positive %, action latency.
-
-README: problem → product → guardrails → how Momentum is different.
-
-Why it’s useful (in one breath)
-
-Because people don’t miss meetings—they miss the prep and the vague asks. Momentum is the only Gmail-native, on-demand tool that turns ambiguity into a scheduled plan with built-in follow-through—and it won’t creep on your whole inbox.
-
-Now stick to this scope. If you wander into summaries, Drive search, or “reads all emails,” you’ll dilute the one thing that makes Momentum worth installing.
