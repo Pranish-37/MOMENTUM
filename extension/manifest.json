@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "MOMENTUM Calendar Assistant",
+    "version": "0.1.0",
+    "description": "Reads emails pages, extracts event info and offers one-click calendar creation.",
+    "icons": {
+        "16": "icons/icon.png"
+    },
+    "action": {
+        "default_title": "MOMENTUM Calendar Assistant",
+        "default_popup": "index.html",
+        "default_icon": "icons/icon.png"
+    },
+    "permissions": [
+        "storage",
+        "scripting",
+        "activeTab",
+        "identity",
+        "notifications",
+        "contextMenus"
+    ],
+    "host_permissions": [
+        "https://mail.google.com/*",
+        "https://mail.proton.me/*",
+        "https://outlook.office.com/*",
+        "https://outlook.live.com/*",
+        "https://www.googleapis.com/*",
+        "https://graph.microsoft.com/*",
+        "https://api.openai.com/*"
+    ]
+}
