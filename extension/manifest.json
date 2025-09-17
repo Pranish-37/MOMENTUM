@@ -27,5 +27,31 @@
         "https://www.googleapis.com/*",
         "https://graph.microsoft.com/*",
         "https://api.openai.com/*"
-    ]
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://mail.google.com/*",
+                "https://mail.proton.me/*",
+                "https://outlook.office.com/*",
+                "https://outlook.live.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "options_page": "options.html",
+    "oauth2": {
+        "client_id": "<GOOGLE_OAUTH_CLIENT_ID>.apps.googleusercontent.com",
+        "scopes": [
+            "https://www.googleapis.com/auth/calendar.events",
+            "email",
+            "profile"
+        ]
+    }
 }
