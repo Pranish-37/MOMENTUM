@@ -1,0 +1,211 @@
+/* Momentum Extension Styles */
+
+.momentum-side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.momentum-side-panel.visible {
+  transform: translateX(0);
+}
+
+.momentum-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.momentum-logo {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 8px;
+}
+
+.momentum-tagline {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.momentum-section {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.momentum-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.momentum-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.momentum-chip.i-owe {
+  background: #fef7cd;
+  color: #b45309;
+}
+
+.momentum-chip.waiting-on {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.momentum-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.momentum-button {
+  background: #1a73e8;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.momentum-button:hover {
+  background: #1557b0;
+}
+
+.momentum-button.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.momentum-button.secondary:hover {
+  background: #e5e7eb;
+}
+
+.momentum-trigger-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+  z-index: 999999; /* Much higher z-index to ensure visibility */
+  transition: all 0.2s;
+  min-width: 120px;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Ensure button is always visible */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.momentum-trigger-button:hover {
+  background: #1557b0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+.momentum-trigger-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
+}
+
+/* Animation for when button appears */
+@keyframes momentumFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.momentum-trigger-button {
+  animation: momentumFadeIn 0.3s ease-out;
+}
+
+.momentum-confidence {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+.momentum-view-source {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.momentum-toggle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.momentum-toggle input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.momentum-footer {
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.momentum-footer button {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.momentum-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+.momentum-close:hover {
+  color: #333;
+}
