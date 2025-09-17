@@ -1,12 +1,3 @@
----
-title: "Momentum — From Email to Done"
-output: github_document
----
-
-<!-- Badges (optional; replace later)
-status: MVP • Platform: Chrome (Gmail-only) • License: MIT/Apache (TBD)
--->
-
 # Momentum
 
 **One-liner:** Turn any Gmail thread into scheduled outcomes — prep time-blocks, Google Tasks (I-Owe / Waiting-On), and ready-to-send drafts — with nudges and re-planning until it’s done.
