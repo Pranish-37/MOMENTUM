@@ -5,6 +5,8 @@ import json
 import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import urllib.request
+import urllib.error
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -20,6 +22,52 @@ CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 BASE_DIR = os.path.dirname(__file__)
 TIMEZONE = 'Europe/Helsinki'
 LOCAL_TZ = ZoneInfo(TIMEZONE)
+
+def notify_ntfy(message: str, title: str | None = None, tags: list[str] | str | None = None,
+                priority: int | str | None = None, click: str | None = None) -> bool:
+    """
+    Send a push notification via ntfy.
+
+    Env vars:
+      - NTFY_TOPIC  (required): topic name, e.g. "my-momentum"
+      - NTFY_SERVER (optional): server base URL, default https://ntfy.sh
+      - NTFY_BEARER (optional): bearer token for Authorization header
+      - NTFY_AUTH   (optional): basic auth in form "user:pass"
+    """
+    topic = os.getenv('NTFY_TOPIC')
+    if not topic:
+        # No topic configured; skip silently to avoid breaking flow
+        return False
+
+    server = os.getenv('NTFY_SERVER', 'https://ntfy.sh').rstrip('/')
+    url = f"{server}/{topic}"
+
+    data = (message or '').encode('utf-8')
+    req = urllib.request.Request(url, data=data, method='POST')
+    if title:
+        req.add_header('Title', title)
+    if tags:
+        req.add_header('Tags', ','.join(tags) if isinstance(tags, list) else str(tags))
+    if priority:
+        req.add_header('Priority', str(priority))
+    if click:
+        req.add_header('Click', click)
+
+    bearer = os.getenv('NTFY_BEARER')
+    basic = os.getenv('NTFY_AUTH')  # expected format: user:pass
+    if bearer:
+        req.add_header('Authorization', f'Bearer {bearer}')
+    elif basic:
+        basic_b64 = base64.b64encode(basic.encode('utf-8')).decode('ascii')
+        req.add_header('Authorization', f'Basic {basic_b64}')
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            # 200/2xx indicates success
+            return 200 <= resp.status < 300
+    except Exception as e:
+        print(f"ntfy notify failed: {e}")
+        return False
 
 def get_gmail_service():
     """
@@ -242,8 +290,34 @@ def create_calendar_event(service, event_details):
             conferenceDataVersion=1
         ).execute()
         print(f"✅ Event created: {event.get('htmlLink')}")
+
+        # Send ntfy notification about the created event
+        try:
+            start_disp = datetime.fromisoformat(start_dt).strftime('%a %Y-%m-%d %H:%M (%Z)')
+            end_disp = datetime.fromisoformat(end_dt).strftime('%H:%M')
+        except Exception:
+            start_disp = start_dt
+            end_disp = end_dt
+        attendees_list = [a.get('email') for a in event.get('attendees', [])] if event.get('attendees') else []
+        attendees_preview = ', '.join(attendees_list[:5]) + ("…" if len(attendees_list) > 5 else '')
+        msg = (
+            f"{event.get('summary', 'New Meeting')}\n"
+            f"When: {start_disp} - {end_disp}\n"
+            f"Where: {event.get('location', '—')}\n"
+            f"Attendees: {attendees_preview or '—'}\n"
+            f"Link: {event.get('htmlLink')}\n"
+        )
+        notify_ntfy(
+            message=msg,
+            title="Calendar event created",
+            tags=['calendar', 'spiral_calendar_pad'],
+            priority=4,
+            click=event.get('htmlLink')
+        )
+        return event
     except Exception as e:
         print(f"❌ Error creating calendar event: {e}")
+        return None
 
 def mark_as_read(service, message_id):
     """
@@ -285,6 +359,22 @@ def main():
             
             if explanation:
                 print(f"⚠️ Gemini couldn't schedule this meeting. Reason: {explanation}")
+                # Notify with a short email summary and the reason
+                preview = (email.get('body') or '').strip().replace('\r', '')
+                if len(preview) > 280:
+                    preview = preview[:277] + '…'
+                msg = (
+                    f"From: {email['from']}\n"
+                    f"Subject: {email['subject']}\n"
+                    f"Reason: {explanation}\n\n"
+                    f"Preview:\n{preview}"
+                )
+                notify_ntfy(
+                    message=msg,
+                    title="Email processed: No meeting scheduled",
+                    tags=['email', 'memo'],
+                    priority=3
+                )
             elif event_details and event_details.get('start_time'):
                 print("✅ Meeting details successfully extracted. Creating calendar event...")
                 
@@ -325,9 +415,49 @@ def main():
                 # Update the event_details dictionary with the corrected attendees list
                 event_details['attendees'] = attendees
 
-                create_calendar_event(calendar_service, event_details)
+                created = create_calendar_event(calendar_service, event_details)
+                # Also notify with an email-centric summary for traceability
+                try:
+                    start_str = event_details.get('start_time')
+                    if start_str:
+                        s = start_str.strip()
+                        if s.endswith('Z'):
+                            s = s[:-1] + '+00:00'
+                        dt = datetime.fromisoformat(s)
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=LOCAL_TZ)
+                        dt = dt.astimezone(LOCAL_TZ)
+                        when_disp = dt.strftime('%a %Y-%m-%d %H:%M (%Z)')
+                    else:
+                        when_disp = '—'
+                except Exception:
+                    when_disp = event_details.get('start_time', '—')
+
+                msg2 = (
+                    f"From: {email['from']}\n"
+                    f"Subject: {email['subject']}\n"
+                    f"Scheduled: {'Yes' if created else 'No'}\n"
+                    f"When: {when_disp}\n"
+                )
+                notify_ntfy(
+                    message=msg2,
+                    title="Email processed: Meeting scheduled" if created else "Email processed: Scheduling failed",
+                    tags=['email', 'calendar'],
+                    priority=4 if created else 3
+                )
             else:
                 print("❗ Gemini returned an empty or incomplete response. Skipping.")
+                msg = (
+                    f"From: {email['from']}\n"
+                    f"Subject: {email['subject']}\n"
+                    f"Result: Incomplete AI response"
+                )
+                notify_ntfy(
+                    message=msg,
+                    title="Email processed: Incomplete data",
+                    tags=['email', 'warning'],
+                    priority=3
+                )
         
         except json.JSONDecodeError as e:
             print(f"❌ Failed to parse Gemini's response as JSON. Error: {e}. Raw response: {analysis_result}")
