@@ -4,6 +4,7 @@ import re
 import json
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -15,20 +16,27 @@ import google.generativeai as genai
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify']
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 
+# Canonical app paths and timezone
+BASE_DIR = os.path.dirname(__file__)
+TIMEZONE = 'Europe/Helsinki'
+LOCAL_TZ = ZoneInfo(TIMEZONE)
+
 def get_gmail_service():
     """
     Authenticates and returns a Gmail API service object.
     """
     creds = None
-    if os.path.exists('token_gmail.json'):
-        creds = Credentials.from_authorized_user_file('token_gmail.json', GMAIL_SCOPES)
+    token_gmail_path = os.path.join(BASE_DIR, 'token_gmail.json')
+    credentials_path = os.path.join(BASE_DIR, 'credentials.json')
+    if os.path.exists(token_gmail_path):
+        creds = Credentials.from_authorized_user_file(token_gmail_path, GMAIL_SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(r'C:\Users\pinku\Downloads\Agentic hackathon\MOMENTUM\credentials.json', GMAIL_SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, GMAIL_SCOPES)
             creds = flow.run_local_server(port=0)
-        with open('token_gmail.json', 'w') as token:
+        with open(token_gmail_path, 'w') as token:
             token.write(creds.to_json())
     return build('gmail', 'v1', credentials=creds)
 
@@ -37,15 +45,17 @@ def get_calendar_service():
     Authenticates and returns a Google Calendar API service object.
     """
     creds = None
-    if os.path.exists('token_calendar.json'):
-        creds = Credentials.from_authorized_user_file('token_calendar.json', CALENDAR_SCOPES)
+    token_calendar_path = os.path.join(BASE_DIR, 'token_calendar.json')
+    credentials_path = os.path.join(BASE_DIR, 'credentials.json')
+    if os.path.exists(token_calendar_path):
+        creds = Credentials.from_authorized_user_file(token_calendar_path, CALENDAR_SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(r'C:\Users\pinku\Downloads\Agentic hackathon\MOMENTUM\credentials.json', CALENDAR_SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, CALENDAR_SCOPES)
             creds = flow.run_local_server(port=0)
-        with open('token_calendar.json', 'w') as token:
+        with open(token_calendar_path, 'w') as token:
             token.write(creds.to_json())
     return build('calendar', 'v3', credentials=creds)
 
@@ -60,25 +70,34 @@ def analyze_email_with_gemini(email_content):
     Uses Gemini to analyze an email for meeting details, with a refined prompt for
     reliable JSON output and an intelligent assumption for end time.
     """
-    genai.configure(api_key='AIzaSyAUdI5WamGQwV1EJtkaIBECvOGk4RtlSFs')
+    # Prefer environment variable if set; fallback to existing key
+    genai_api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyAUdI5WamGQwV1EJtkaIBECvOGk4RtlSFs')
+    genai.configure(api_key=genai_api_key)
     model = genai.GenerativeModel('gemini-1.5-flash')
+    now_local = datetime.now(LOCAL_TZ).isoformat()
     
     prompt = f"""
-    Analyze the following email to determine if it is realted to any meeting invitation.
+    Analyze the following email to determine if it is related to any meeting invitation.
     
     Always respond with a single JSON object. Do not include any other text, explanations, or Markdown formatting outside of the JSON.
 
-    Try to understand the email content and extract the information.if there are no meeting attendees mentioned in the email, assume the sender is the only attendee and include their email address in the attendees list.
+    Try to understand the email content and extract the information. If there are no meeting attendees mentioned in the email, assume the sender is the only attendee and include their email address in the attendees list.
 
-    If a meeting is found and a start time is present, populate the "meeting_details" key with the extracted information.And if there is no year mentioned in the email, assume the meeting is scheduled for the current year.
+    If a meeting is found and a start time is present, populate the "meeting_details" key with the extracted information. If there is no year mentioned in the email, assume the meeting is scheduled for the current year.
 
-    Confirm the start time and date are in the future relative to the current date and time. If the extracted start time is in the past, leave the "meeting_details" key as an empty object and provide a concise reason in the "explanation" key.
+    Context for relative terms: The current local date/time is {now_local} in timezone {TIMEZONE}. Interpret relative terms like "today", "tomorrow", or weekday names relative to this local time.
 
-    Cgonfirm the start time and date before creating the calendar event.
+    Confirm the start time and date are in the future relative to the current local date and time above. If the extracted start time is in the past, leave the "meeting_details" key as an empty object and provide a concise reason in the "explanation" key.
+
+    Confirm the start time and date before creating the calendar event.
     
     **Crucial instruction**: If an end time is not explicitly mentioned, assume the meeting duration is exactly one hour and set the "end_time" accordingly.
     
     If the email is not a meeting invitation or if no start time can be found, leave the "meeting_details" key as an empty object and provide a concise reason in the "explanation" key.
+
+    Timezone and format requirements:
+    - Assume the meeting is in timezone {TIMEZONE} unless another timezone/offset is explicitly provided.
+    - Always output start_time and end_time in full ISO 8601 format INCLUDING timezone offset, e.g., 2025-09-19T15:00:00+03:00.
 
     The JSON object must have these keys:
     - explanation: A string explaining why the meeting could not be scheduled. This should be empty if the meeting is scheduled successfully.
@@ -153,15 +172,49 @@ def create_calendar_event(service, event_details):
     """
     Creates a new event on the user's primary calendar with location and conference data.
     """
+    # Helper to ensure datetimes are timezone-aware and in Helsinki timezone
+    def _to_local_rfc3339(dt_str: str) -> str:
+        if not dt_str:
+            return dt_str
+        cleaned = dt_str.strip()
+        # Support trailing 'Z'
+        if cleaned.endswith('Z'):
+            cleaned = cleaned[:-1] + '+00:00'
+        try:
+            dt = datetime.fromisoformat(cleaned)
+        except ValueError:
+            # Try to add seconds if missing
+            try:
+                if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?:[+-]\d{2}:?\d{2})?$', cleaned):
+                    # Insert :00 seconds before timezone part
+                    cleaned2 = re.sub(r'(T\d{2}:\d{2})(?=[+-]\d{2}:?\d{2}$)', r'\1:00', cleaned)
+                    dt = datetime.fromisoformat(cleaned2)
+                else:
+                    raise
+            except Exception:
+                raise
+
+        if dt.tzinfo is None:
+            # Treat naive times as local Helsinki time
+            dt = dt.replace(tzinfo=LOCAL_TZ)
+        else:
+            # Convert any tz-aware time into Helsinki time
+            dt = dt.astimezone(LOCAL_TZ)
+        return dt.isoformat()
+
+    # Normalize start/end to local RFC3339
+    start_dt = _to_local_rfc3339(event_details.get('start_time'))
+    end_dt = _to_local_rfc3339(event_details.get('end_time'))
+
     event = {
         'summary': event_details.get('subject', 'New Meeting'),
         'start': {
-            'dateTime': event_details['start_time'],
-            'timeZone': 'America/New_York',
+            'dateTime': start_dt,
+            'timeZone': TIMEZONE,
         },
         'end': {
-            'dateTime': event_details['end_time'],
-            'timeZone': 'America/New_York',
+            'dateTime': end_dt,
+            'timeZone': TIMEZONE,
         },
         'attendees': [{'email': a} for a in event_details.get('attendees', [])]
     }
@@ -238,7 +291,14 @@ def main():
                 # Check for and calculate end_time if it's missing
                 if not event_details.get('end_time'):
                     try:
-                        start_time_dt = datetime.fromisoformat(event_details['start_time'])
+                        start_str = event_details['start_time'].strip()
+                        if start_str.endswith('Z'):
+                            start_str = start_str[:-1] + '+00:00'
+                        start_time_dt = datetime.fromisoformat(start_str)
+                        if start_time_dt.tzinfo is None:
+                            # Assume Helsinki local time if tz missing
+                            start_time_dt = start_time_dt.replace(tzinfo=LOCAL_TZ)
+                        # End time is 1 hour after start, preserving tz awareness
                         end_time_dt = start_time_dt + timedelta(hours=1)
                         event_details['end_time'] = end_time_dt.isoformat()
                         print("❗ End time not provided, defaulting to a 1-hour duration.")
