@@ -1,1 +1,5 @@
 .env
+backend/credentials.json
+backend/token_calendar.json
+backend/token_gmail.json
+backend/temp_backup/*
